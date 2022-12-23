@@ -31,7 +31,6 @@ class MealDetailsViewModel: ViewModel() {
                 Log.d("Zatona", "onFailure:${t.message} ")
             }
 
-
         })
 
     }
