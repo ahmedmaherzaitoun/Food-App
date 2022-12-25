@@ -1,21 +1,32 @@
 package com.example.food.viewmodel
 
-import android.util.Log
+import android.text.BoringLayout
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.example.food.data.RetrofitInstance
+import androidx.lifecycle.viewModelScope
+import com.example.food.data.api.ApiRepository
+import com.example.food.data.db.DatabaseRepository
 import com.example.food.model.Meal
-import com.example.food.model.MealList
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class MealDetailsViewModel: ViewModel() {
+@HiltViewModel
+class MealDetailsViewModel @Inject constructor(private val databaseRepository: DatabaseRepository, private val apiRepository: ApiRepository): ViewModel() {
     private var mealMutableLiveData = MutableLiveData<Meal>()
 
     fun getMealDetails(id:String){
+        CoroutineScope(Dispatchers.IO).launch {
+            val response = apiRepository.getMealDetails(id)
+            if (response.isSuccessful) {
+                mealMutableLiveData.postValue(response.body()!!.meals[0])
 
+            }
+        }
+            /*
         RetrofitInstance.api.getMealDetails(id).enqueue(object : Callback<MealList> {
             override fun onResponse(call: Call<MealList>, response: Response<MealList>) {
                 if( response.isSuccessful){
@@ -27,16 +38,27 @@ class MealDetailsViewModel: ViewModel() {
                 }
             }
             override fun onFailure(call: Call<MealList>, t: Throwable) {
-                TODO("Not yet implemented")
                 Log.d("Zatona", "onFailure:${t.message} ")
             }
 
         })
-
+*/
     }
 
     fun observeMealDetails(): LiveData<Meal> {
         return mealMutableLiveData
     }
-
+    fun insertMealIntoDB(meal:Meal){
+        viewModelScope.launch {
+            databaseRepository.insertFavoriteMeal(meal)
+        }
+    }
+    fun deleteMealFromDB(meal:Meal){
+        viewModelScope.launch {
+            databaseRepository.deleteFavoriteMeal(meal)
+        }
+    }
+    fun checkMealIsFavorite(idMeal:String): LiveData<Int> {
+       return databaseRepository.checkMealIsFavorite(idMeal)
+    }
 }
